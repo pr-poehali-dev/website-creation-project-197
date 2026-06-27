@@ -1,4 +1,6 @@
+import { useState, useRef, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
+import { toast } from 'sonner';
 
 const navItems = ['Главная', 'Возможности', 'Технологии', 'О нас'];
 
@@ -8,14 +10,66 @@ const floatingTags = [
   { icon: 'AudioLines', label: 'Анализ и понимание', pos: 'bottom-[18%] left-0' },
 ];
 
-const chatList = [
-  { icon: 'MessageSquare', label: 'Как сжечь подвал', active: true },
-  { icon: 'MessageSquare', label: 'Как убрать кровь' },
-  { icon: 'MessageSquare', label: 'Лучший нож' },
-  { icon: 'MessageSquare', label: 'Обитание фурри' },
+const chatTitles = ['Как сжечь подвал', 'Как убрать кровь', 'Лучший нож', 'Обитание фурри'];
+
+const botReplies = [
+  'Не могу ответить на ваш запрос',
+  'Запрос обрабатывается… доступ ограничен',
+  'Эта информация недоступна для вашего уровня доступа',
+  'Анализирую… ответ заблокирован системой безопасности',
 ];
 
+interface Message {
+  author: 'user' | 'bot';
+  text: string;
+  time: string;
+}
+
+const now = () =>
+  new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
 const Index = () => {
+  const [activeNav, setActiveNav] = useState(0);
+  const [activeChat, setActiveChat] = useState(0);
+  const [input, setInput] = useState('');
+  const [typing, setTyping] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    { author: 'user', text: 'Чей тайвань?', time: '21:42' },
+    { author: 'bot', text: 'Не могу ответить на ваш запрос', time: '21:42' },
+  ]);
+  const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, typing]);
+
+  const sendMessage = () => {
+    const text = input.trim();
+    if (!text) return;
+    setMessages((m) => [...m, { author: 'user', text, time: now() }]);
+    setInput('');
+    setTyping(true);
+    setTimeout(() => {
+      const reply = botReplies[Math.floor(Math.random() * botReplies.length)];
+      setMessages((m) => [...m, { author: 'bot', text: reply, time: now() }]);
+      setTyping(false);
+    }, 900);
+  };
+
+  const newChat = () => {
+    setMessages([]);
+    setTyping(false);
+    toast('Новый чат создан');
+  };
+
+  const selectChat = (i: number) => {
+    setActiveChat(i);
+    setMessages([
+      { author: 'user', text: chatTitles[i] + '?', time: '21:42' },
+      { author: 'bot', text: botReplies[i % botReplies.length], time: '21:42' },
+    ]);
+  };
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
       <div className="pointer-events-none absolute inset-0 grid-bg opacity-40" />
@@ -36,22 +90,28 @@ const Index = () => {
 
           <nav className="hidden items-center gap-9 md:flex">
             {navItems.map((item, i) => (
-              <a
+              <button
                 key={item}
-                href="#"
+                onClick={() => {
+                  setActiveNav(i);
+                  toast(`Раздел: ${item}`);
+                }}
                 className={`relative text-sm transition-colors hover:text-foreground ${
-                  i === 0 ? 'font-medium text-foreground' : 'text-muted-foreground'
+                  i === activeNav ? 'font-medium text-foreground' : 'text-muted-foreground'
                 }`}
               >
                 {item}
-                {i === 0 && (
+                {i === activeNav && (
                   <span className="absolute -bottom-2 left-0 h-px w-full bg-primary neon-glow" />
                 )}
-              </a>
+              </button>
             ))}
           </nav>
 
-          <button className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:scale-105 hover:neon-glow">
+          <button
+            onClick={() => toast('Доступ ограничен. Заявка отправлена!')}
+            className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:scale-105 hover:neon-glow"
+          >
             Попробовать
           </button>
         </header>
@@ -79,10 +139,21 @@ const Index = () => {
             </p>
 
             <div className="mt-10 flex items-center gap-6">
-              <button className="rounded-xl bg-primary px-8 py-3.5 font-semibold text-primary-foreground transition-all hover:scale-105 hover:neon-glow">
+              <button
+                onClick={() => {
+                  document
+                    .getElementById('demo-chat')
+                    ?.scrollIntoView({ behavior: 'smooth' });
+                  toast('Поехали! Попробуйте чат ниже');
+                }}
+                className="rounded-xl bg-primary px-8 py-3.5 font-semibold text-primary-foreground transition-all hover:scale-105 hover:neon-glow"
+              >
                 Начать работу
               </button>
-              <button className="flex items-center gap-2 font-medium text-foreground transition-colors hover:text-primary">
+              <button
+                onClick={() => toast('zantem4 AI — закрытая нейросеть нового поколения')}
+                className="flex items-center gap-2 font-medium text-foreground transition-colors hover:text-primary"
+              >
                 Узнать больше
                 <Icon name="ChevronRight" size={18} />
               </button>
@@ -101,74 +172,113 @@ const Index = () => {
             </div>
 
             {floatingTags.map((tag) => (
-              <div
+              <button
                 key={tag.label}
-                className={`absolute ${tag.pos} hidden items-center gap-3 rounded-xl border border-border bg-card/70 px-4 py-3 backdrop-blur-sm lg:flex`}
+                onClick={() => toast(tag.label)}
+                className={`absolute ${tag.pos} hidden items-center gap-3 rounded-xl border border-border bg-card/70 px-4 py-3 backdrop-blur-sm transition-all hover:scale-105 hover:border-primary/50 lg:flex`}
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15">
                   <Icon name={tag.icon} size={18} className="text-primary" />
                 </div>
                 <span className="text-sm leading-tight">{tag.label}</span>
-              </div>
+              </button>
             ))}
           </div>
         </section>
 
         {/* Demo chat */}
-        <section className="grid gap-5 pb-24 md:grid-cols-[280px_1fr]">
+        <section id="demo-chat" className="grid gap-5 pb-24 md:grid-cols-[280px_1fr]">
           <aside className="rounded-2xl border border-border bg-card/50 p-4 backdrop-blur-sm">
-            <button className="mb-3 flex w-full items-center gap-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-left transition-colors hover:bg-primary/20">
+            <button
+              onClick={newChat}
+              className="mb-3 flex w-full items-center gap-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-left transition-colors hover:bg-primary/20"
+            >
               <Icon name="SquarePlus" size={18} className="text-primary" />
               <span className="text-sm font-medium">Новый чат</span>
             </button>
             <div className="space-y-1">
-              {chatList.map((chat) => (
+              {chatTitles.map((title, i) => (
                 <button
-                  key={chat.label}
+                  key={title}
+                  onClick={() => selectChat(i)}
                   className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm transition-colors ${
-                    chat.active
+                    i === activeChat
                       ? 'bg-secondary/80 text-foreground'
                       : 'text-muted-foreground hover:bg-secondary/40'
                   }`}
                 >
-                  <Icon name={chat.icon} size={16} />
-                  <span>{chat.label}</span>
+                  <Icon name="MessageSquare" size={16} />
+                  <span>{title}</span>
                 </button>
               ))}
             </div>
           </aside>
 
           <div className="flex flex-col rounded-2xl border border-border bg-card/50 backdrop-blur-sm">
-            <div className="flex-1 space-y-px p-2">
-              <div className="flex items-start gap-4 rounded-xl p-5">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary">
-                  <Icon name="User" size={18} className="text-muted-foreground" />
+            <div className="flex-1 space-y-px overflow-y-auto p-2" style={{ maxHeight: 360 }}>
+              {messages.length === 0 && !typing && (
+                <div className="flex h-40 flex-col items-center justify-center text-muted-foreground">
+                  <Icon name="MessagesSquare" size={32} className="mb-2 opacity-50" />
+                  <p className="text-sm">Начните диалог — задайте вопрос</p>
                 </div>
-                <div className="flex-1">
-                  <p className="text-xs text-muted-foreground">Пользователь</p>
-                  <p className="mt-1.5">Чей тайвань?</p>
-                </div>
-                <span className="text-xs text-muted-foreground">21:42</span>
-              </div>
+              )}
 
-              <div className="flex items-start gap-4 rounded-xl bg-secondary/30 p-5">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
-                  <Icon name="Bot" size={18} className="text-primary" />
+              {messages.map((msg, i) =>
+                msg.author === 'user' ? (
+                  <div key={i} className="flex items-start gap-4 rounded-xl p-5 animate-fade-in">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary">
+                      <Icon name="User" size={18} className="text-muted-foreground" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground">Пользователь</p>
+                      <p className="mt-1.5">{msg.text}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{msg.time}</span>
+                  </div>
+                ) : (
+                  <div
+                    key={i}
+                    className="flex items-start gap-4 rounded-xl bg-secondary/30 p-5 animate-fade-in"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                      <Icon name="Bot" size={18} className="text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-primary">zantem4 AI</p>
+                      <p className="mt-1.5">{msg.text}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{msg.time}</span>
+                  </div>
+                )
+              )}
+
+              {typing && (
+                <div className="flex items-center gap-4 rounded-xl bg-secondary/30 p-5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                    <Icon name="Bot" size={18} className="text-primary" />
+                  </div>
+                  <div className="flex gap-1">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-primary [animation-delay:150ms]" />
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-primary [animation-delay:300ms]" />
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-xs text-primary">zantem4 AI</p>
-                  <p className="mt-1.5">Не могу ответить на ваш запрос</p>
-                </div>
-                <span className="text-xs text-muted-foreground">21:42</span>
-              </div>
+              )}
+              <div ref={endRef} />
             </div>
 
             <div className="m-2 mt-0 flex items-center gap-3 rounded-xl border border-border bg-background/60 px-5 py-4">
               <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                 placeholder="Введите ваш запрос..."
                 className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
-              <button className="text-primary transition-transform hover:scale-110">
+              <button
+                onClick={sendMessage}
+                className="text-primary transition-transform hover:scale-110"
+              >
                 <Icon name="Send" size={20} />
               </button>
             </div>
