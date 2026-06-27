@@ -1,22 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
-
-const navItems = ['Главная', 'Возможности', 'Технологии', 'О нас'];
 
 const floatingTags = [
   { icon: 'Box', label: 'Обработка данных', pos: 'top-[12%] left-0' },
   { icon: 'Brain', label: 'Глубокое обучение', pos: 'top-[12%] right-0' },
   { icon: 'AudioLines', label: 'Анализ и понимание', pos: 'bottom-[18%] left-0' },
-];
-
-const chatTitles = ['Как сжечь подвал', 'Как убрать кровь', 'Лучший нож', 'Обитание фурри'];
-
-const botReplies = [
-  'Не могу ответить на ваш запрос',
-  'Запрос обрабатывается… доступ ограничен',
-  'Эта информация недоступна для вашего уровня доступа',
-  'Анализирую… ответ заблокирован системой безопасности',
 ];
 
 interface Message {
@@ -25,18 +15,14 @@ interface Message {
   time: string;
 }
 
-const now = () =>
+const nowTime = () =>
   new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
 const Index = () => {
-  const [activeNav, setActiveNav] = useState(0);
-  const [activeChat, setActiveChat] = useState(0);
+  const navigate = useNavigate();
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { author: 'user', text: 'Чей тайвань?', time: '21:42' },
-    { author: 'bot', text: 'Не могу ответить на ваш запрос', time: '21:42' },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,29 +32,23 @@ const Index = () => {
   const sendMessage = () => {
     const text = input.trim();
     if (!text) return;
-    setMessages((m) => [...m, { author: 'user', text, time: now() }]);
+    setMessages((m) => [...m, { author: 'user', text, time: nowTime() }]);
     setInput('');
     setTyping(true);
     setTimeout(() => {
-      const reply = botReplies[Math.floor(Math.random() * botReplies.length)];
-      setMessages((m) => [...m, { author: 'bot', text: reply, time: now() }]);
+      setMessages((m) => [
+        ...m,
+        { author: 'bot', text: 'Серверы временно недоступны', time: nowTime() },
+      ]);
       setTyping(false);
     }, 900);
   };
 
-  const newChat = () => {
-    setMessages([]);
-    setTyping(false);
-    toast('Новый чат создан');
-  };
-
-  const selectChat = (i: number) => {
-    setActiveChat(i);
-    setMessages([
-      { author: 'user', text: chatTitles[i] + '?', time: '21:42' },
-      { author: 'bot', text: botReplies[i % botReplies.length], time: '21:42' },
-    ]);
-  };
+  const navLinks = [
+    { label: 'Главная', action: () => navigate('/') },
+    { label: 'Возможности', action: () => navigate('/features') },
+    { label: 'О нас', action: () => navigate('/about') },
+  ];
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
@@ -79,9 +59,9 @@ const Index = () => {
       <div className="relative z-10 mx-auto max-w-7xl px-6">
         {/* Header */}
         <header className="flex items-center justify-between py-7">
-          <div className="font-sora text-2xl font-extrabold tracking-tight">
+          <button onClick={() => navigate('/')} className="font-sora text-2xl font-extrabold tracking-tight">
             zantem4<span className="text-primary">.AI</span>
-          </div>
+          </button>
 
           <div className="hidden items-center gap-2 rounded-full border border-border bg-secondary/40 px-5 py-2.5 lg:flex">
             <Icon name="Lock" size={15} className="text-primary" />
@@ -89,19 +69,16 @@ const Index = () => {
           </div>
 
           <nav className="hidden items-center gap-9 md:flex">
-            {navItems.map((item, i) => (
+            {navLinks.map((item, i) => (
               <button
-                key={item}
-                onClick={() => {
-                  setActiveNav(i);
-                  toast(`Раздел: ${item}`);
-                }}
+                key={item.label}
+                onClick={item.action}
                 className={`relative text-sm transition-colors hover:text-foreground ${
-                  i === activeNav ? 'font-medium text-foreground' : 'text-muted-foreground'
+                  i === 0 ? 'font-medium text-foreground' : 'text-muted-foreground'
                 }`}
               >
-                {item}
-                {i === activeNav && (
+                {item.label}
+                {i === 0 && (
                   <span className="absolute -bottom-2 left-0 h-px w-full bg-primary neon-glow" />
                 )}
               </button>
@@ -140,18 +117,15 @@ const Index = () => {
 
             <div className="mt-10 flex items-center gap-6">
               <button
-                onClick={() => {
-                  document
-                    .getElementById('demo-chat')
-                    ?.scrollIntoView({ behavior: 'smooth' });
-                  toast('Поехали! Попробуйте чат ниже');
-                }}
+                onClick={() =>
+                  document.getElementById('demo-chat')?.scrollIntoView({ behavior: 'smooth' })
+                }
                 className="rounded-xl bg-primary px-8 py-3.5 font-semibold text-primary-foreground transition-all hover:scale-105 hover:neon-glow"
               >
                 Начать работу
               </button>
               <button
-                onClick={() => toast('zantem4 AI — закрытая нейросеть нового поколения')}
+                onClick={() => navigate('/features')}
                 className="flex items-center gap-2 font-medium text-foreground transition-colors hover:text-primary"
               >
                 Узнать больше
@@ -172,54 +146,30 @@ const Index = () => {
             </div>
 
             {floatingTags.map((tag) => (
-              <button
+              <div
                 key={tag.label}
-                onClick={() => toast(tag.label)}
-                className={`absolute ${tag.pos} hidden items-center gap-3 rounded-xl border border-border bg-card/70 px-4 py-3 backdrop-blur-sm transition-all hover:scale-105 hover:border-primary/50 lg:flex`}
+                className={`absolute ${tag.pos} hidden items-center gap-3 rounded-xl border border-border bg-card/70 px-4 py-3 backdrop-blur-sm lg:flex`}
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15">
                   <Icon name={tag.icon} size={18} className="text-primary" />
                 </div>
                 <span className="text-sm leading-tight">{tag.label}</span>
-              </button>
+              </div>
             ))}
           </div>
         </section>
 
         {/* Demo chat */}
-        <section id="demo-chat" className="grid gap-5 pb-24 md:grid-cols-[280px_1fr]">
-          <aside className="rounded-2xl border border-border bg-card/50 p-4 backdrop-blur-sm">
-            <button
-              onClick={newChat}
-              className="mb-3 flex w-full items-center gap-3 rounded-xl border border-primary/40 bg-primary/10 px-4 py-3 text-left transition-colors hover:bg-primary/20"
-            >
-              <Icon name="SquarePlus" size={18} className="text-primary" />
-              <span className="text-sm font-medium">Новый чат</span>
-            </button>
-            <div className="space-y-1">
-              {chatTitles.map((title, i) => (
-                <button
-                  key={title}
-                  onClick={() => selectChat(i)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm transition-colors ${
-                    i === activeChat
-                      ? 'bg-secondary/80 text-foreground'
-                      : 'text-muted-foreground hover:bg-secondary/40'
-                  }`}
-                >
-                  <Icon name="MessageSquare" size={16} />
-                  <span>{title}</span>
-                </button>
-              ))}
-            </div>
-          </aside>
-
+        <section id="demo-chat" className="pb-24">
           <div className="flex flex-col rounded-2xl border border-border bg-card/50 backdrop-blur-sm">
-            <div className="flex-1 space-y-px overflow-y-auto p-2" style={{ maxHeight: 360 }}>
+            <div
+              className="flex-1 overflow-y-auto p-2 space-y-1"
+              style={{ minHeight: 220, maxHeight: 360 }}
+            >
               {messages.length === 0 && !typing && (
                 <div className="flex h-40 flex-col items-center justify-center text-muted-foreground">
-                  <Icon name="MessagesSquare" size={32} className="mb-2 opacity-50" />
-                  <p className="text-sm">Начните диалог — задайте вопрос</p>
+                  <Icon name="MessagesSquare" size={32} className="mb-2 opacity-40" />
+                  <p className="text-sm">Задайте вопрос — ИИ ответит</p>
                 </div>
               )}
 
@@ -236,10 +186,7 @@ const Index = () => {
                     <span className="text-xs text-muted-foreground">{msg.time}</span>
                   </div>
                 ) : (
-                  <div
-                    key={i}
-                    className="flex items-start gap-4 rounded-xl bg-secondary/30 p-5 animate-fade-in"
-                  >
+                  <div key={i} className="flex items-start gap-4 rounded-xl bg-secondary/30 p-5 animate-fade-in">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
                       <Icon name="Bot" size={18} className="text-primary" />
                     </div>
@@ -257,7 +204,7 @@ const Index = () => {
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
                     <Icon name="Bot" size={18} className="text-primary" />
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1.5">
                     <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
                     <span className="h-2 w-2 animate-pulse rounded-full bg-primary [animation-delay:150ms]" />
                     <span className="h-2 w-2 animate-pulse rounded-full bg-primary [animation-delay:300ms]" />
@@ -286,7 +233,7 @@ const Index = () => {
         </section>
 
         <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-          © 2024 zantem4.AI. Все права защищены.
+          © 2026 zantem4.AI. Все права защищены.
         </footer>
       </div>
     </div>
